@@ -1,0 +1,13 @@
+{
+  "name": "indexed-bip39-generator-monorepo",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "indexToMnemonic",
+    "client"
+  ],
+  "scripts": {
+    "build": "npm run build -w index-to-mnemonic && npm run build -w client",
+    "test": "npm run test -w index-to-mnemonic"
+  }
+}

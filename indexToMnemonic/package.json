@@ -1,0 +1,31 @@
+{
+  "name": "index-to-mnemonic",
+  "version": "1.0.0",
+  "description": "Deterministic BIP39 12-word mnemonic generation from an index",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "build": "echo 'No build step required for index-to-mnemonic'"
+  },
+  "keywords": [
+    "bip39",
+    "mnemonic",
+    "wallet",
+    "deterministic",
+    "seed"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "bip39": "^3.1.0"
+  }
+}
