@@ -1,11 +1,11 @@
 <script>
-  import { indexToMnemonic, MAX_INDEX } from 'index-to-mnemonic';
-
   let indexInput = '0';
-  let mnemonic = indexToMnemonic(0n);
+  let mnemonic = '';
   let error = '';
 
-  function generateMnemonic() {
+  const MAX_INDEX = "340282366920938463463374607431768211455";
+
+  async function generateMnemonic() {
     error = '';
     mnemonic = '';
 
@@ -14,8 +14,17 @@
         throw new Error('Please enter a non-negative integer.');
       }
 
-      const index = BigInt(indexInput.trim());
-      mnemonic = indexToMnemonic(index);
+      const response = await fetch(
+        `http://localhost:3000/?index=${indexInput.trim()}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Server error");
+      }
+
+      const data = await response.json();
+      mnemonic = data.mnemonic;
+
     } catch (err) {
       error = err.message;
     }
@@ -24,7 +33,10 @@
 
 <main>
   <h1>Indexed BIP39 Generator Demo</h1>
-  <p>Generate a deterministic BIP39 12-word mnemonic for an index from 0 to {MAX_INDEX.toString()}.</p>
+  <p>
+    Generate a deterministic BIP39 12-word mnemonic for an index from
+    0 to {MAX_INDEX}.
+  </p>
 
   <div class="form-row">
     <label for="index">Index</label>
@@ -59,7 +71,7 @@
     padding: 1.5rem;
     background: #111827;
     border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
   }
 
   .form-row {
