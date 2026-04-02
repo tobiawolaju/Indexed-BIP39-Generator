@@ -1,8 +1,11 @@
 <script>
+  import { indexToMnemonic, MAX_INDEX } from 'index-to-mnemonic';
+
   const PAGE_SIZE = 1000;
+  const MAX_PAGE = Number(MAX_INDEX / BigInt(PAGE_SIZE));
 
   let page = 1;
-  let totalPages = 1;
+  let totalPages = MAX_PAGE + 1;
   let rows = [];
   let loading = false;
   let error = '';
@@ -12,17 +15,29 @@
     error = '';
 
     try {
-      const response = await fetch(`http://localhost:3000/page?page=${targetPage}`);
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to load page');
+      if (!Number.isInteger(targetPage) || targetPage < 1 || targetPage > MAX_PAGE + 1) {
+        throw new Error(`Provide page between 1 and ${MAX_PAGE + 1}`);
       }
 
-      const data = await response.json();
-      page = data.page;
-      totalPages = data.totalPages;
-      rows = data.rows;
+      const startIndex = BigInt((targetPage - 1) * PAGE_SIZE);
+      const nextRows = [];
+
+      for (let offset = 0; offset < PAGE_SIZE; offset += 1) {
+        const index = startIndex + BigInt(offset);
+        if (index > MAX_INDEX) {
+          break;
+        }
+
+        nextRows.push({
+          index: index.toString(),
+          mnemonic: indexToMnemonic(index),
+          balanceEth: '0.000000'
+        });
+      }
+
+      page = targetPage;
+      totalPages = MAX_PAGE + 1;
+      rows = nextRows;
     } catch (err) {
       error = err.message;
     } finally {
