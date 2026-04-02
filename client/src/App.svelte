@@ -5,6 +5,20 @@
   const TOTAL_PAGES = (MAX_INDEX / PAGE_SIZE) + 1n;
   const QUICK_LINK_GROUP_SIZE = 100n;
 
+  const SUPERSCRIPT_MAP = {
+    '0': '⁰',
+    '1': '¹',
+    '2': '²',
+    '3': '³',
+    '4': '⁴',
+    '5': '⁵',
+    '6': '⁶',
+    '7': '⁷',
+    '8': '⁸',
+    '9': '⁹',
+    '-': '⁻'
+  };
+
   let page = 1n;
   let rows = [];
   let loading = false;
@@ -13,8 +27,42 @@
 
   $: pageTotalBalance = rows.reduce((sum, row) => sum + row.balanceEth, 0);
 
+  function toSuperscript(value) {
+    return value
+      .toString()
+      .split('')
+      .map((char) => SUPERSCRIPT_MAP[char] ?? char)
+      .join('');
+  }
+
+  function formatBigNumber(value) {
+    const text = value.toString();
+    if (text.length <= 8) {
+      return text;
+    }
+
+    const mantissa = `${text[0]}.${text.slice(1, 2)}`;
+    const exponent = text.length - 1;
+    return `${mantissa}${toSuperscript(exponent)}`;
+  }
+
   function formatPage(value) {
-    return value.toString();
+    return formatBigNumber(value);
+  }
+
+  function formatPowerBase(value, base = 52n) {
+    if (value < 1n) {
+      return '0';
+    }
+
+    let exponent = 0n;
+    let current = value;
+    while (current >= base) {
+      current /= base;
+      exponent += 1n;
+    }
+
+    return `${base.toString()}${toSuperscript(exponent)}`;
   }
 
   function formatBalance(value) {
@@ -34,7 +82,6 @@
   }
 
   $: startPages = buildQuickPageList(1n, QUICK_LINK_GROUP_SIZE);
-  $: endPages = buildQuickPageList(TOTAL_PAGES - QUICK_LINK_GROUP_SIZE + 1n, TOTAL_PAGES);
 
   async function loadPage(targetPage) {
     loading = true;
@@ -56,7 +103,9 @@
         }
 
         nextRows.push({
-          index: index.toString(),
+          index,
+          indexLabel: formatBigNumber(index),
+          indexPowerLabel: formatPowerBase(index),
           mnemonic: indexToMnemonic(index),
           balanceEth: 0
         });
@@ -109,6 +158,11 @@
 
   <div class="table-wrap">
     <table>
+      <colgroup>
+        <col class="index-col" />
+        <col />
+        <col class="balance-col" />
+      </colgroup>
       <thead>
         <tr>
           <th>Index</th>
@@ -124,10 +178,17 @@
         {:else}
           {#each rows as row}
             <tr>
-              <td>{row.index}</td>
+              <td>
+                <div class="index-cell">
+                  <span>{row.indexLabel}</span>
+                  <span class="index-power">≈ {row.indexPowerLabel}</span>
+                </div>
+              </td>
               <td>
                 <div class="mnemonic-wrap">
-                  <span class="mnemonic">{row.mnemonic}</span>
+                  <div class="mnemonic-holder">
+                    <span class="mnemonic">{row.mnemonic}</span>
+                  </div>
                   <button class="copy-button" on:click={() => copySeedPhrase(row.mnemonic)} aria-label="Copy seed phrase" title="Copy seed phrase">
                     📋
                   </button>
@@ -153,16 +214,9 @@
   </div>
 
   <div class="page-shortcuts">
-    <p>Pages 1 to +100</p>
+    <p>Pages 1 to 100 (all available quick links)</p>
     <div class="shortcut-list">
       {#each startPages as quickPage}
-        <button class="page-button" on:click={() => loadPage(quickPage)} disabled={loading || quickPage === page}>{formatPage(quickPage)}</button>
-      {/each}
-    </div>
-
-    <p>End -100 to End -0</p>
-    <div class="shortcut-list">
-      {#each endPages as quickPage}
         <button class="page-button" on:click={() => loadPage(quickPage)} disabled={loading || quickPage === page}>{formatPage(quickPage)}</button>
       {/each}
     </div>
@@ -178,12 +232,11 @@
   }
 
   main {
-    max-width: 1200px;
-    margin: 1rem auto;
-    padding: 1rem;
+    width: 100vw;
+    margin: 0;
+    padding: 0.5rem;
+    box-sizing: border-box;
     background: #ffffff;
-    border-radius: 12px;
-    border: 1px solid #d1d5db;
   }
 
   h1 {
@@ -191,10 +244,9 @@
   }
 
   .table-wrap {
-    max-height: 62vh;
+    max-height: 68vh;
     overflow: auto;
     border: 1px solid #d1d5db;
-    border-radius: 12px;
   }
 
   table {
@@ -203,13 +255,21 @@
     table-layout: fixed;
   }
 
+  .index-col {
+    width: 8.5rem;
+  }
+
+  .balance-col {
+    width: 7.5rem;
+  }
+
   th,
   td {
     border-bottom: 1px solid #e5e7eb;
-    padding: 0.6rem;
+    padding: 0.2rem 0.3rem;
     text-align: left;
     vertical-align: top;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
   }
 
   th {
@@ -218,22 +278,40 @@
     background: #ffffff;
   }
 
+  .index-cell {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+  }
+
+  .index-power {
+    color: #4b5563;
+    font-size: 0.75rem;
+  }
+
   .mnemonic-wrap {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.4rem;
     align-items: flex-start;
   }
 
+  .mnemonic-holder {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    max-height: 2.4rem;
+    overflow: auto;
+  }
+
   .mnemonic {
-    word-break: normal;
     overflow-wrap: anywhere;
-    line-height: 1.4;
+    line-height: 1.2;
     flex: 1;
   }
 
   .copy-button {
-    min-width: 2rem;
-    height: 2rem;
+    min-width: 1.7rem;
+    height: 1.7rem;
     border: 1px solid #d1d5db;
     border-radius: 999px;
     background: #f3f4f6;
@@ -270,7 +348,7 @@
     border: 1px solid #2563eb;
     color: #ffffff;
     border-radius: 10px;
-    padding: 0.55rem 0.9rem;
+    padding: 0.45rem 0.7rem;
     cursor: pointer;
   }
 
@@ -287,7 +365,7 @@
   .shortcut-list {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem;
+    gap: 0.3rem;
     margin-bottom: 0.8rem;
   }
 
@@ -295,7 +373,7 @@
     background: #ffffff;
     color: #1f2937;
     border: 1px solid #9ca3af;
-    padding: 0.35rem 0.55rem;
+    padding: 0.25rem 0.45rem;
     border-radius: 8px;
   }
 
@@ -314,26 +392,23 @@
   }
 
   @media (max-width: 700px) {
-    main {
-      margin: 0;
-      border-radius: 0;
-      border-left: 0;
-      border-right: 0;
-    }
-
     th,
     td {
-      font-size: 0.8rem;
-      padding: 0.45rem;
+      font-size: 0.78rem;
+      padding: 0.2rem;
     }
 
-    .mnemonic-wrap {
-      align-items: center;
+    .index-col {
+      width: 7.2rem;
+    }
+
+    .balance-col {
+      width: 6.4rem;
     }
 
     .copy-button {
-      min-width: 1.8rem;
-      height: 1.8rem;
+      min-width: 1.5rem;
+      height: 1.5rem;
     }
   }
 </style>
