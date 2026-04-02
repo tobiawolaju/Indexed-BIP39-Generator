@@ -3,7 +3,7 @@
 A monorepo with:
 
 - `indexToMnemonic`: publishable JavaScript npm package that converts an index (`0..2^128-1`) into a valid deterministic BIP39 12-word mnemonic.
-- `client`: Svelte + HTML demo app that uses the package.
+- `client`: Svelte + HTML demo app that uses the package and computes paginated rows directly in the browser (serverless).
 
 ## Project Structure
 
@@ -47,23 +47,13 @@ npm run test -w index-to-mnemonic
 npm run build -w index-to-mnemonic
 ```
 
-## Run API server (required for paginated wallet data)
-
-```bash
-cd api
-npm install
-npm start
-```
-
-The client calls `http://localhost:3000/page?page=1` and displays 1,000 wallets per page with seed phrase and ETH balance.
-
 ## Run demo client (Svelte + HTML)
 
 ```bash
 npm run dev -w indexed-bip39-demo-client
 ```
 
-Then open the local Vite URL.
+Then open the local Vite URL. The app calculates mnemonics in-browser and displays 1,000 wallets per page with seed phrase and ETH balance.
 
 ### Client build
 
