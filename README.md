@@ -47,6 +47,16 @@ npm run test -w index-to-mnemonic
 npm run build -w index-to-mnemonic
 ```
 
+## Run API server (required for paginated wallet data)
+
+```bash
+cd api
+npm install
+npm start
+```
+
+The client calls `http://localhost:3000/page?page=1` and displays 1,000 wallets per page with seed phrase and ETH balance.
+
 ## Run demo client (Svelte + HTML)
 
 ```bash

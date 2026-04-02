@@ -1,60 +1,90 @@
 <script>
-  let indexInput = '0';
-  let mnemonic = '';
+  const PAGE_SIZE = 1000;
+
+  let page = 1;
+  let totalPages = 1;
+  let rows = [];
+  let loading = false;
   let error = '';
 
-  const MAX_INDEX = "340282366920938463463374607431768211455";
-
-  async function generateMnemonic() {
+  async function loadPage(targetPage) {
+    loading = true;
     error = '';
-    mnemonic = '';
 
     try {
-      if (!/^\d+$/.test(indexInput.trim())) {
-        throw new Error('Please enter a non-negative integer.');
-      }
-
-      const response = await fetch(
-        `http://localhost:3000/?index=${indexInput.trim()}`
-      );
+      const response = await fetch(`http://localhost:3000/page?page=${targetPage}`);
 
       if (!response.ok) {
-        throw new Error("Server error");
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to load page');
       }
 
       const data = await response.json();
-      mnemonic = data.mnemonic;
-
+      page = data.page;
+      totalPages = data.totalPages;
+      rows = data.rows;
     } catch (err) {
       error = err.message;
+    } finally {
+      loading = false;
     }
   }
+
+  function nextPage() {
+    if (page < totalPages && !loading) {
+      loadPage(page + 1);
+    }
+  }
+
+  function previousPage() {
+    if (page > 1 && !loading) {
+      loadPage(page - 1);
+    }
+  }
+
+  loadPage(page);
 </script>
 
 <main>
-  <h1>Indexed BIP39 Generator Demo</h1>
-  <p>
-    Generate a deterministic BIP39 12-word mnemonic for an index from
-    0 to {MAX_INDEX}.
-  </p>
-
-  <div class="form-row">
-    <label for="index">Index</label>
-    <input id="index" bind:value={indexInput} placeholder="e.g. 42" />
-  </div>
-
-  <button on:click={generateMnemonic}>Generate</button>
-
-  {#if mnemonic}
-    <section>
-      <h2>Mnemonic</h2>
-      <p class="mnemonic">{mnemonic}</p>
-    </section>
-  {/if}
+  <h1>Indexed Wallet Browser</h1>
+  <p>Viewing deterministic wallets in pages of {PAGE_SIZE} indexes.</p>
 
   {#if error}
     <p class="error">{error}</p>
   {/if}
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Index</th>
+          <th>Seed Phrase</th>
+          <th>ETH Balance</th>
+        </tr>
+      </thead>
+      <tbody>
+        {#if loading && rows.length === 0}
+          <tr>
+            <td colspan="3" class="status">Loading page...</td>
+          </tr>
+        {:else}
+          {#each rows as row}
+            <tr>
+              <td>{row.index}</td>
+              <td class="mnemonic">{row.mnemonic}</td>
+              <td>{row.balanceEth}</td>
+            </tr>
+          {/each}
+        {/if}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pager">
+    <button on:click={previousPage} disabled={page === 1 || loading}>Previous</button>
+    <span>Page {page} of {totalPages}</span>
+    <button on:click={nextPage} disabled={page === totalPages || loading}>Next</button>
+  </div>
 </main>
 
 <style>
@@ -66,26 +96,62 @@
   }
 
   main {
-    max-width: 720px;
-    margin: 3rem auto;
-    padding: 1.5rem;
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 1rem;
     background: #111827;
     border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   }
 
-  .form-row {
-    display: grid;
-    gap: 0.5rem;
-    margin: 1rem 0;
+  h1 {
+    margin-top: 0;
   }
 
-  input {
-    padding: 0.65rem;
-    border-radius: 8px;
+  .table-wrap {
+    max-height: 70vh;
+    overflow: auto;
     border: 1px solid #374151;
-    background: #1f2937;
-    color: #fff;
+    border-radius: 8px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  th,
+  td {
+    border-bottom: 1px solid #1f2937;
+    padding: 0.5rem;
+    text-align: left;
+    vertical-align: top;
+    font-size: 0.88rem;
+  }
+
+  th {
+    position: sticky;
+    top: 0;
+    background: #111827;
+  }
+
+  .mnemonic {
+    word-break: break-word;
+  }
+
+  .status {
+    text-align: center;
+    color: #93c5fd;
+    padding: 1.2rem;
+  }
+
+  .pager {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
   }
 
   button {
@@ -93,20 +159,16 @@
     border: none;
     color: white;
     border-radius: 8px;
-    padding: 0.7rem 1rem;
+    padding: 0.6rem 1rem;
     cursor: pointer;
   }
 
-  .mnemonic {
-    font-size: 1.1rem;
-    line-height: 1.5;
-    background: #1f2937;
-    padding: 0.75rem;
-    border-radius: 8px;
+  button:disabled {
+    background: #374151;
+    cursor: not-allowed;
   }
 
   .error {
     color: #fca5a5;
-    margin-top: 1rem;
   }
 </style>
