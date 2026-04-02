@@ -1,29 +1,32 @@
 <script>
   import { indexToMnemonic, MAX_INDEX } from 'index-to-mnemonic';
 
-  const PAGE_SIZE = 1000;
-  const MAX_PAGE = Number(MAX_INDEX / BigInt(PAGE_SIZE));
+  const PAGE_SIZE = 1000n;
+  const TOTAL_PAGES = (MAX_INDEX / PAGE_SIZE) + 1n;
 
-  let page = 1;
-  let totalPages = MAX_PAGE + 1;
+  let page = 1n;
   let rows = [];
   let loading = false;
   let error = '';
+
+  function formatPage(value) {
+    return value.toString();
+  }
 
   async function loadPage(targetPage) {
     loading = true;
     error = '';
 
     try {
-      if (!Number.isInteger(targetPage) || targetPage < 1 || targetPage > MAX_PAGE + 1) {
-        throw new Error(`Provide page between 1 and ${MAX_PAGE + 1}`);
+      if (typeof targetPage !== 'bigint' || targetPage < 1n || targetPage > TOTAL_PAGES) {
+        throw new Error(`Provide page between 1 and ${formatPage(TOTAL_PAGES)}`);
       }
 
-      const startIndex = BigInt((targetPage - 1) * PAGE_SIZE);
+      const startIndex = (targetPage - 1n) * PAGE_SIZE;
       const nextRows = [];
 
-      for (let offset = 0; offset < PAGE_SIZE; offset += 1) {
-        const index = startIndex + BigInt(offset);
+      for (let offset = 0n; offset < PAGE_SIZE; offset += 1n) {
+        const index = startIndex + offset;
         if (index > MAX_INDEX) {
           break;
         }
@@ -36,7 +39,6 @@
       }
 
       page = targetPage;
-      totalPages = MAX_PAGE + 1;
       rows = nextRows;
     } catch (err) {
       error = err.message;
@@ -46,14 +48,14 @@
   }
 
   function nextPage() {
-    if (page < totalPages && !loading) {
-      loadPage(page + 1);
+    if (page < TOTAL_PAGES && !loading) {
+      loadPage(page + 1n);
     }
   }
 
   function previousPage() {
-    if (page > 1 && !loading) {
-      loadPage(page - 1);
+    if (page > 1n && !loading) {
+      loadPage(page - 1n);
     }
   }
 
@@ -62,7 +64,7 @@
 
 <main>
   <h1>Indexed Wallet Browser</h1>
-  <p>Viewing deterministic wallets in pages of {PAGE_SIZE} indexes.</p>
+  <p>Viewing deterministic wallets in pages of {PAGE_SIZE.toString()} indexes.</p>
 
   {#if error}
     <p class="error">{error}</p>
@@ -96,9 +98,9 @@
   </div>
 
   <div class="pager">
-    <button on:click={previousPage} disabled={page === 1 || loading}>Previous</button>
-    <span>Page {page} of {totalPages}</span>
-    <button on:click={nextPage} disabled={page === totalPages || loading}>Next</button>
+    <button on:click={previousPage} disabled={page === 1n || loading}>Previous</button>
+    <span>Page {formatPage(page)} of {formatPage(TOTAL_PAGES)}</span>
+    <button on:click={nextPage} disabled={page === TOTAL_PAGES || loading}>Next</button>
   </div>
 </main>
 
@@ -106,17 +108,18 @@
   :global(body) {
     margin: 0;
     font-family: Arial, sans-serif;
-    background: #0b1220;
-    color: #e5e7eb;
+    background: #f8fafc;
+    color: #0f172a;
   }
 
   main {
     max-width: 1200px;
     margin: 2rem auto;
     padding: 1rem;
-    background: #111827;
+    background: #ffffff;
     border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+    border: 1px solid #e2e8f0;
   }
 
   h1 {
@@ -126,7 +129,7 @@
   .table-wrap {
     max-height: 70vh;
     overflow: auto;
-    border: 1px solid #374151;
+    border: 1px solid #e2e8f0;
     border-radius: 8px;
   }
 
@@ -138,7 +141,7 @@
 
   th,
   td {
-    border-bottom: 1px solid #1f2937;
+    border-bottom: 1px solid #e2e8f0;
     padding: 0.5rem;
     text-align: left;
     vertical-align: top;
@@ -148,7 +151,7 @@
   th {
     position: sticky;
     top: 0;
-    background: #111827;
+    background: #f8fafc;
   }
 
   .mnemonic {
@@ -157,7 +160,7 @@
 
   .status {
     text-align: center;
-    color: #93c5fd;
+    color: #2563eb;
     padding: 1.2rem;
   }
 
@@ -179,11 +182,11 @@
   }
 
   button:disabled {
-    background: #374151;
+    background: #94a3b8;
     cursor: not-allowed;
   }
 
   .error {
-    color: #fca5a5;
+    color: #dc2626;
   }
 </style>
